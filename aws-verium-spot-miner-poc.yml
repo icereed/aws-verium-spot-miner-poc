@@ -1,0 +1,322 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: |
+  This is a POC (Proof Of Concept) for benchmarking hashrates when mining Verium using AWS spot instances.
+  Verium mining is not profitable and this template should only be used for benchmarking and/or other educational activities.
+
+# Help for CloudFormation Metadata
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/metadata-section-structure.html
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: PRE-REGISTERED VERIUM MINING POOL INFO
+      Parameters:
+      - MiningPool
+      - WorkerAccount
+      - WorkerName
+      - WorkerPassword
+    - Label:
+        default: SPOT INSTANCES
+      Parameters:
+      - NumOfSpots
+      - InstanceSize
+      - SpotPrice
+      - ChooseVPC
+      - KeyName
+    - Label:
+        default: SECURITY
+      Parameters:
+      - SSHAccessIP
+    ParameterLabels:
+      MiningPool:
+        default: Verium Mining Pool
+      WorkerAccount:
+        default: Pool Account ID
+      WorkerName:
+        default: Name of Worker
+      WorkerPassword:
+        default: Password for Worker
+      NumOfSpots:
+        default: Number of Spot Instances
+      InstanceSize:
+        default: Instance Size
+      SpotPrice:
+        default: Bid Price
+      ChooseVPC:
+        default: Choose a VPC
+      KeyName:
+        default: EC2 Key Pair
+      SSHAccessIP:
+        default: Restrict SSH To
+# Help for CloudFormation Parameters
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html
+Parameters:
+  MiningPool:
+    Description: "Select a Verium Mining Pool. If you aren't sure which to choose keep the default."
+    Type: String
+    Default: stratum+tcp://eu.poolinat0r.com:4443
+    AllowedValues:
+    - stratum+tcp://eu.poolinat0r.com:4443
+    - stratum+tcp://eu.poolinat0r.com:4444
+    - stratum+tcp://eu.poolinat0r.com:4445
+    - stratum+tcp://eu.poolinat0r.com:4446
+    - stratum+tcp://eu.poolinat0r.com:4447
+  WorkerAccount:
+    Description: "Account ID of your mining pool."
+    Type: String
+    Default: 79a4c7a7
+  WorkerName:
+    Description: "Name for your spot worker that you pre-registered in your mining pool."
+    Type: String
+    Default: centralc42xlarge
+  WorkerPassword:
+    Description: "Password for your worker that you pre-registered in your mining pool."
+    Type: String
+    Default: Za8vxWFKQN
+    NoEcho: true
+  NumOfSpots:
+    Description: "Select a number of spot instances to bid for. You will be charged for any instances that start."
+    Type: Number
+    Default: 1
+    AllowedValues:  
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+    - 25
+    - 30
+    - 35
+    - 40
+    - 45
+    - 50
+    - 55
+    - 60
+    - 65
+    - 70
+    - 75
+    - 80
+  InstanceSize:
+    Description: "Select a Compute Optimized instance size. The default usually has the best performance for the cost."
+    Type: String
+    Default: c4.2xlarge
+    AllowedValues:  
+    - c4.large
+    - c4.xlarge
+    - c4.2xlarge
+    - c4.4xlarge
+    - c4.8xlarge
+  SpotPrice:
+    Description: "Enter a your spot bid amount. Current prices listed at: https://aws.amazon.com/ec2/spot/pricing/"
+    Type: String
+    Default: 0.07
+    AllowedPattern: "(\\d{1})\\.(\\d{1,3})"
+  ChooseVPC:
+    Description: REQUIRED - Select an EXISTING VPC to launch your Verium miner instances.
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: You must choose the name of an existing VPC ID.
+  KeyName:
+    Description: REQUIRED - Select an EXISTING EC2 key pair to launch your miner instances.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: You must choose the name of an existing EC2 KeyPair
+  SSHAccessIP:
+    Description: Enter your source IP for SSH access. Use http://ipchicken.com if not sure. Note that 0.0.0.0/0 isn't allowed to protect yourself from yourself.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default : 180.43.200.194/32
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})(/32)"
+    ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/32
+# Help for CloudFormation Mappings
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html
+Mappings:
+  RegionMap:
+    # Regions ordered by AWS Console for consistency. 
+    # US East (N. Virginia)
+    us-east-1:
+      ubuntu1604: ami-cd0f5cb6
+    # US East (Ohio)
+    us-east-2: 
+      ubuntu1604: ami-10547475
+    # US West (N. California)
+    us-west-1:
+      ubuntu1604: ami-09d2fb69
+    # US West (Oregon)
+    us-west-2:
+      ubuntu1604: ami-6e1a0117
+    # Canada (Central)
+    ca-central-1:
+      ubuntu1604: ami-b3d965d7
+    # EU (Ireland)
+    eu-west-1:
+      ubuntu1604: ami-785db401
+    # EU (Frankfurt)
+    eu-central-1:
+      ubuntu1604: ami-1e339e71
+    # EU (London)
+    eu-west-2:
+      ubuntu1604: ami-996372fd
+    # Asia Pacific (Singapore)
+    ap-southeast-1:
+      ubuntu1604: ami-6f198a0c
+    # Asia Pacific (Sydney)
+    ap-southeast-2:
+      ubuntu1604: ami-e2021d81
+    # Asia Pacific (Seoul)
+    ap-northeast-2:
+      ubuntu1604: ami-d28a53bc
+    # Asia Pacific (Tokyo)
+    ap-northeast-1:
+      ubuntu1604: ami-ea4eae8c
+    # Asia Pacific (Mumbai)
+    ap-south-1:
+      ubuntu1604: ami-099fe766
+    # South America (São Paulo)
+    sa-east-1:
+      ubuntu1604: ami-10186f7c    
+Resources:
+  SpotFleet:
+    DependsOn:
+      - MinerInstanceProfile
+      - MinerInstanceRole
+      - MinerInstanceSSG
+    Type: AWS::EC2::SpotFleet
+    Properties:
+      SpotFleetRequestConfigData:
+        # Help on SpotFleetRequestConfigData: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotFleetRequestConfigData.html
+        AllocationStrategy: lowestPrice
+        IamFleetRole: !GetAtt [SpotFleetRole, Arn]
+        SpotPrice:
+          Ref: SpotPrice
+        TargetCapacity:
+          Ref: NumOfSpots
+        LaunchSpecifications:
+          # This MUST be the Arn and is different from the AWS::EC2::Instance resource version of IamInstanceProfile: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata-launchspecifications-iaminstanceprofile.html
+        - IamInstanceProfile:
+            Arn:
+              Fn::GetAtt:
+              - MinerInstanceProfile
+              - Arn
+          InstanceType:
+            Ref: InstanceSize
+          KeyName:
+            Ref: KeyName
+          # It might be worth pointing out that you cannot use !If in a !FindInMap, only !Ref: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-findinmap.html
+          # You also cannot use !Select and !Split within !FindInMap which is lame: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-split.html
+          ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1604]
+          # SubnetID is not required and we want the spot bid to choose the cheapest AZ automatically.
+          # Reference - http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata-launchspecifications.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-launchspecifications-instancetype
+          #SubnetId:
+            #Ref: Subnet1
+          # Might want to look at this for pricing strategy.
+          #WeightedCapacity: '8'
+          SecurityGroups:
+          - GroupId:
+              Ref: MinerInstanceSSG
+          # Look at this later.
+          #WeightedCapacity: '8'
+          UserData:
+            Fn::Base64: !Sub |
+              #!/bin/bash
+              # Normally wouldn't bother updating for ephemeral spot instances but
+              # must update or the required packages will not install. 
+              apt update -y
+              apt install -y git make automake autoconf pkg-config libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev
+              git clone https://github.com/effectsToCause/veriumMiner
+              cd veriumMiner
+              ./autogen.sh
+              ./build.sh
+              ./cpuminer -o ${MiningPool} -O ${WorkerAccount}.${WorkerName}:${WorkerPassword} -t x 
+  MinerInstanceSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH Access to Verium miner instance(s).
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp:
+         Ref: SSHAccessIP
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Join:
+          - ''
+          - - Ref: WorkerName
+            - -MINER-SSH-ACCESS
+      # As long as you have a default VPC, don't have to specify: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group.html#cfn-ec2-securitygroup-vpcid
+      VpcId:
+        Ref: ChooseVPC
+  SpotFleetRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Join:
+        - ''
+        - - Ref: AWS::Region
+          - "-"
+          - Fn::Join:
+            - ''
+            - - Ref: WorkerName
+              - -MINER-SPOT-FLEET-ROLE
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - spotfleet.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole
+      Path: /
+  MinerInstanceProfile:
+    DependsOn:
+    - MinerInstanceRole
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: MinerInstanceRole
+  MinerInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Join:
+        - ''
+        - - Ref: AWS::Region
+          - "-"
+          - Fn::Join:
+            - ''
+            - - Ref: WorkerName
+              - -MINER-INSTANCE-ROLE
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+Outputs:
+  MinerCommand:
+    Description: Reference your mining command here
+    Value: !Join [ "", [ "./cpuminer -o ", Ref: MiningPool," -O ", Ref: WorkerAccount, ".", Ref: WorkerName, ":", Ref: WorkerPassword, " -t x"]]
