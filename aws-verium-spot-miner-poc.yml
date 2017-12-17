@@ -55,21 +55,20 @@ Parameters:
   MiningPool:
     Description: "Select a Verium Mining Pool. If you aren't sure which to choose keep the default."
     Type: String
-    Default: stratum+tcp://eu.poolinat0r.com:4443
+    Default: stratum+tcp://eu.vrm.mining-pool.ovh:3032
     AllowedValues:
-    - stratum+tcp://eu.poolinat0r.com:4443
-    - stratum+tcp://eu.poolinat0r.com:4444
-    - stratum+tcp://eu.poolinat0r.com:4445
-    - stratum+tcp://eu.poolinat0r.com:4446
-    - stratum+tcp://eu.poolinat0r.com:4447
+    - stratum+tcp://eu.vrm.mining-pool.ovh:3032
+    - stratum+tcp://eu.vrm.mining-pool.ovh:3033
+    - stratum+tcp://eu.vrm.mining-pool.ovh:3034
+    - stratum+tcp://eu.vrm.mining-pool.ovh:3035
   WorkerAccount:
     Description: "Account ID of your mining pool."
     Type: String
-    Default: 79a4c7a7
+    Default: icereed
   WorkerName:
     Description: "Name for your spot worker that you pre-registered in your mining pool."
     Type: String
-    Default: centralc42xlarge
+    Default: aws
   WorkerPassword:
     Description: "Password for your worker that you pre-registered in your mining pool."
     Type: String
@@ -242,7 +241,7 @@ Resources:
               cd veriumMiner
               ./autogen.sh
               ./build.sh
-              ./cpuminer -o ${MiningPool} -O ${WorkerAccount}.${WorkerName}:${WorkerPassword} -t x 
+              ./cpuminer -n 1048576 -o ${MiningPool} -u ${WorkerAccount}.${WorkerName} -p ${WorkerPassword}
   MinerInstanceSSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
